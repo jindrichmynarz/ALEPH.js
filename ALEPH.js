@@ -73,42 +73,45 @@ var ALEPH = {
   dom : {
     // Podle návěští získá řádek tabulky #fullbody.
     // parametr fullRow, pokud chceme celý řádek
-    getRowValue : function( label, fullRow ) {
-      var trs = document.getElementById( "fullbody" ).getElementsByTagName( "tr" );
-      var trsLen = trs.length,
-        tds;
-      while ( trsLen-- ) {
-        tds = trs[trsLen].getElementsByTagName( "td" );
-        var tdsLen = tds.length,
-          tdContent;
-        while ( tdsLen-- ) {
-          if ( tds[tdsLen].width === "15%" ) {
-            if ( tds[tdsLen].firstChild.nodeValue ) {
-              tdContent = tds[tdsLen].firstChild.nodeValue;
-              if ( tdContent.indexOf( label ) !== -1  ) {
-                var td = tds[tdsLen].nextSibling;
-                if ( fullRow ) {
-                  return tds[tdsLen].parentNode;
-                }
-                // Firefox bere v potaz whitespace (jako TextNode),
-                // proto je třeba posunout výběr na další node.
-                while ( td ) {
-                  if ( td.nodeType === 3 && td.nodeValue.match( /\S/ ) ) {
-                    return ALEPH.util.trim( td.nodeValue );
+    getRowValue : function(label, fullRow) {
+      var fullbody = document.getElementById("fullbody")
+      if (fullbody) {
+        var trs = fullbody.getElementsByTagName("tr");
+        var trsLen = trs.length,
+          tds;
+        while (trsLen--) {
+          tds = trs[trsLen].getElementsByTagName("td");
+          var tdsLen = tds.length,
+            tdContent;
+          while (tdsLen--) {
+            if (tds[tdsLen].width === "15%") {
+              if (tds[tdsLen].firstChild.nodeValue) {
+                tdContent = tds[tdsLen].firstChild.nodeValue;
+                if (tdContent.indexOf(label) !== -1) {
+                  var td = tds[tdsLen].nextSibling;
+                  if ( fullRow ) {
+                    return tds[tdsLen].parentNode;
                   }
-                  if ( td.nodeType === 3 && !td.nodeValue.match( /\S/ ) ) {
-                    td = td.nextSibling;
-                  }
-                  if ( td.nodeType === 1 ) {
-                    td = td.firstChild;
+                  // Firefox bere v potaz whitespace (jako TextNode),
+                  // proto je třeba posunout výběr na další node.
+                  while ( td ) {
+                    if ( td.nodeType === 3 && td.nodeValue.match( /\S/ ) ) {
+                      return ALEPH.util.trim( td.nodeValue );
+                    }
+                    if ( td.nodeType === 3 && !td.nodeValue.match( /\S/ ) ) {
+                      td = td.nextSibling;
+                    }
+                    if ( td.nodeType === 1 ) {
+                      td = td.firstChild;
+                    }
                   }
                 }
               }
             }
           }
         }
+        return null;
       }
-      return null;
     },
     buildRow : function( label, value ) {
       // vrátí řádek tabulky (<tr>) 
@@ -203,7 +206,7 @@ var ALEPH = {
     ALEPH.ajax.getResponse(url, function(xhr) {
       var json = JSON.parse(xhr.responseText); // Dodělat parsování JSONu pomocí knihovny json2.js
       if (typeof json.images !== "undefined" && json.images.length) {
-        var exhibits = document.createElement( "a" );
+        var exhibits = document.createElement("a");
         // Dodělat budování HTML
         // Testovat na příkladu: http://aleph.techlib.cz/cgi-bin/obrazek.pl?sn=000604149
         ALEPH.ui.addWidget(exhibits);
