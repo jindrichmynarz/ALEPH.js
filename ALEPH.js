@@ -297,10 +297,11 @@ var ALEPH = {
         var linksLen = links.length;
         while ( linksLen-- ) {
           // očištění pouze na žádané elementy <a>
-          if ( ( links[linksLen].href.indexOf( "format=999" ) !== -1 ) && 
-            links[linksLen].firstChild.nodeValue.match( /^\d+$/ ) ) {
+          // Pro fungování i v myshelf-short byla vypuštěna podmínka:
+          // (links[linksLen].href.indexOf("format=999") !== -1)
+          if (links[linksLen].firstChild.nodeValue.match( /^\d+$/ )) {
             // uložení odkazu
-            hrefs.push( links[linksLen].href );
+            hrefs.push(links[linksLen].href);
           }
         }
         return hrefs;
