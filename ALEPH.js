@@ -158,6 +158,7 @@ var ALEPH = {
     }
   },
   eod : {
+    displayFlag : true,
     sysno : false,
     callback : function (xhr) {
       var xml = xhr.responseXML,
@@ -169,9 +170,12 @@ var ALEPH = {
         if (fixfieldId === "BAS") {
           var content = fixfield.firstChild.nodeValue.toLowerCase();
           if (content === "di") {
-            ALEPH.eod.display();
+            ALEPH.eod.displayFlag = false;
           }
         }
+      }
+      if (displayFlag) {
+        ALEPH.eod.display();
       }
     },
     display : function () {
@@ -198,7 +202,7 @@ var ALEPH = {
             ALEPH.ajax.getResponse(url, ALEPH.eod.callback);
           }
         }
-        eod.parentNode.removeChild( eod );
+        eod.parentNode.removeChild(eod);
         return null;
       }
       else {
