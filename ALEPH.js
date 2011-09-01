@@ -3,7 +3,7 @@
 var ALEPH = {
   ajax : {
     // Bulletproof xhr instantiation by Jeremy Keith
-    getHTTPObject : function() {
+    getHTTPObject : function () {
       var xhr = false;
       if (window.XMLHttpRequest) {
         xhr = new XMLHttpRequest();
@@ -21,13 +21,13 @@ var ALEPH = {
       }
       return xhr;
     },
-    getResponse : function( url, callback ) {
+    getResponse : function ( url, callback ) {
       var xhr = ALEPH.ajax.getHTTPObject();
       if ( xhr ) {
         xhr.open( "GET", url, true); // Tady je 
         // podle IE problém. Proč ale Firefox
         // může lokální soubory požadovat?
-        xhr.onreadystatechange = function() {
+        xhr.onreadystatechange = function () {
           if ( xhr.readyState === 4 ) {
             if ( xhr.status === 200 || xhr.status === 304 ) {
               callback( xhr );
@@ -43,24 +43,29 @@ var ALEPH = {
     }
   },
   cover : {
-    checkImage : function( imageLink, callback ) {
+    checkImage : function ( imageLink, callback ) {
       // Zkontroluje, jestli obrázek obálky není
       // prázdný (tj. typu image/gif) a zavolá
       // callback.
-      ALEPH.ajax.getResponse( imageLink, function( xhr ) {
+      ALEPH.ajax.getResponse( imageLink, function ( xhr ) {
         // Získá hlavičku odpovědi pro Content-type.
         var responseMimeType = xhr.getResponseHeader("Content-type");
         // Pokud je Content-type GIF, jde o prázdný obrázek.
-        responseMimeType === "image/gif" ? callback(true) : callback(false);
+        if (responseMimeType === "image/gif") {
+          callback(true);
+        } 
+        else {
+          callback(false);
+        }
       });
     },
-    display : function() {  
+    display : function () {  
       var sysno = ALEPH.dom.getRowValue( "Sysno" );
       var coverImage = document.createElement( "img" );
         coverImage.alt = "Obálka";
         coverImage.src = "http://aleph.techlib.cz/cgi-bin/image.pl?size=big&sn=" + sysno;
       
-      ALEPH.cover.checkImage( coverImage.src, function() {
+      ALEPH.cover.checkImage( coverImage.src, function () {
         if( !arguments[0] ) {
           // arguments[0] === false, takže obálku NTK nemá
           var newTr = ALEPH.dom.buildRow( "Obálka", coverImage );
@@ -73,8 +78,8 @@ var ALEPH = {
   dom : {
     // Podle návěští získá řádek tabulky #fullbody.
     // parametr fullRow, pokud chceme celý řádek
-    getRowValue : function(label, fullRow) {
-      var fullbody = document.getElementById("fullbody")
+    getRowValue : function (label, fullRow) {
+      var fullbody = document.getElementById("fullbody");
       if (fullbody) {
         var trs = fullbody.getElementsByTagName("tr");
         var trsLen = trs.length,
@@ -113,7 +118,7 @@ var ALEPH = {
         return null;
       }
     },
-    buildRow : function( label, value ) {
+    buildRow : function ( label, value ) {
       // vrátí řádek tabulky (<tr>) 
       // s návěštím "label" (TextNode) 
       // a hodnotou "value" (Element)
@@ -143,7 +148,7 @@ var ALEPH = {
       
       return newTr;
     },
-    createScript : function( scriptUrl, encode ) {
+    createScript : function ( scriptUrl, encode ) {
       // encode = {true; false}, určuje, zdali se má scriptUrl kódovat
       var newScript = document.createElement("script");
       newScript.src = encode ? encodeURI( scriptUrl ) : scriptUrl;
@@ -154,23 +159,22 @@ var ALEPH = {
   },
   eod : {
     sysno : false,
-    callback : function(json) {
-      var entries = json.feed.entry,
-        entriesLen = entries.length,
-        display = true,
-        parsedSysNo = parseInt(ALEPH.eod.sysno, 10),
-        actualSysNo = null;
-      while (entriesLen--) {
-        actualSysNo = parseInt(entries[entriesLen].content.$t, 10);
-        if (actualSysNo === parsedSysNo) {
-          display = false;
+    callback : function (xhr) {
+      var xml = xhr.responseXML,
+        fixfields = xml.getElementsByTagName("fixfield"),
+        fixfieldsLen = fixfields.length;
+      while(fixfieldsLen--) {
+        var fixfield = fixfields[fixfieldsLen],
+          fixfieldId = ALEPH.util.getAttribute(fixfield, "id");
+        if (fixfieldId === "BAS") {
+          var content = fixfield.firstChild.nodeValue.toLowerCase();
+          if (content === "di") {
+            ALEPH.eod.display();
+          }
         }
       }
-      if (display) {
-        ALEPH.eod.display();
-      }
     },
-    display : function() {
+    display : function () {
       var eodLink = document.createElement( "a" );
       eodLink.href = "http://books2ebooks.eu/odm/orderformular.do?formular_id=221&sys_id=" + ALEPH.eod.sysno;
       eodLink.setAttribute( "target", "_blank" );
@@ -179,16 +183,19 @@ var ALEPH = {
         " border=\"0\" title=\"EOD - eBooks on Demand\" alt=\"EOD - eBooks on Demand\" />";
       ALEPH.ui.addWidget( eodLink );
     },
-    init : function() {
+    init : function () {
       var eod = ALEPH.dom.getRowValue( "EOD", 1 ),
-        limit = 1909; // do tohoto roku lze v rámci EOD digitalizovat
+        // do tohoto roku lze v rámci EOD digitalizovat
+        limit = (new Date()).getFullYear() - 100;
       if ( eod ) {
         ALEPH.eod.sysno = ALEPH.dom.getRowValue( "Sysno" );
         year = ALEPH.dom.getRowValue( "Naklad", 1 ).innerHTML.match( /\d{4}/ );
         if ( year ) {
           year = year[0];
           if ( year <= limit ) {
-            ALEPH.dom.createScript("http://spreadsheets.google.com/feeds/cells/tBuTyis1-RsCe6M1yWjPIjQ/1/public/basic?alt=json-in-script&callback=ALEPH.eod.callback");
+            var url = "http://aleph.techlib.cz/X?op=find_doc&base=STK01&doc_num="
+              + ALEPH.eod.sysno;
+            ALEPH.ajax.getResponse(url, ALEPH.eod.callback);
           }
         }
         eod.parentNode.removeChild( eod );
@@ -200,34 +207,63 @@ var ALEPH = {
     }
   },
   exhibits : {
-    // Obrázkové náhledy naskenovaných historických dokumentů.
-    var sysno = ALEPH.dom.getRowValue("Sysno"),
-      url = "http://aleph.techlib.cz/cgi-bin/obrazek.pl?sn=" + sysno;
-    ALEPH.ajax.getResponse(url, function(xhr) {
-      var json = JSON.parse(xhr.responseText); // Dodělat parsování JSONu pomocí knihovny json2.js
-      if (typeof json.images !== "undefined" && json.images.length) {
-        var exhibits = document.createElement("a");
-        // Dodělat budování HTML
-        // Testovat na příkladu: http://aleph.techlib.cz/cgi-bin/obrazek.pl?sn=000604149
-        ALEPH.ui.addWidget(exhibits);
+    "callback" : function (xhr) {
+      var data = xhr.responseText.evalJSON(),
+        data = data.images,
+        dataLen = data.length;
+        
+      if (typeof data.images !== "undefined" && data.images.length) {
+        data = data.images;
+        var dataLen = data.length,
+          button = document.createElement("a"),
+          img = document.createElement("img");
+        button.rel = "lightbox[thumbs]";
+        button.href = data[0].big;
+        img.src = "http://aleph.ntkcz.cz/ikony/ukazky.PNG";
+        img.border = "0";
+        img.title = "Náhledy";
+        button.appendChild(img);
+        
+        var exhibits = document.createElement("div");
+        ALEPH.util.applyCSS(exhibits, {"display" : "none"});
+        
+        while(dataLen--) {
+          var item = document.createElement("a"),
+            content = document.createTextNode(dataLen);
+          item.rel = "lightbox[thumbs]";
+          item.href = data[dataLen].big;
+          item.appendChild(content);
+          exhibits.appendChild(item);
+        }
+        document.getElementById("lcc_place").appendChild(exhibits);
+        ALEPH.ui.addWidget(button);
       }
-    });
+    },
+    "init" : function () {
+      // Obrázkové náhledy naskenovaných historických dokumentů.
+      var sysno = ALEPH.dom.getRowValue("Sysno"),
+        url = "http://aleph.techlib.cz/cgi-bin/obrazek.pl?sn=" + sysno;
+      ALEPH.ajax.getResponse(url, ALEPH.exhibits.callback);
+    }
   },
   sfx : {
-    modifyAlephSfxLink : function() {
+    modifyAlephSfxLink : function () {
       // Najde element <a> pro SFX.
       var sfxAnchor = document.getElementById( "sfx" ).getElementsByTagName( "a" )[0];
       // Z jeho atributu href získá URL adresu.
       var sfxLink = sfxAnchor.href.match(/(http.*F)\/.*(\?.*)\'/);
       sfxLink = sfxLink[1] + sfxLink[2];
       // AJAXové volání právě získané URL adresy.
-      ALEPH.ajax.getResponse( sfxLink, function( xhr ) {
+      ALEPH.ajax.getResponse( sfxLink, function ( xhr ) {
         var response = xhr.responseText;
         response = response.slice( response.indexOf( "var url" ), response.indexOf( "if" ) );
         response = ALEPH.util.trim( response );
         response = response.split( "'" );
         // Spojí sudé části pole do výstupního řetězce.
-        for (  var i = 1, responseLen = response.length, url = ""; i < responseLen; i += 2 ) {
+        var i = 1,
+          responseLen = response.length,
+          url = "";
+        for (; i < responseLen; i += 2 ) {
           url += response[i];
         }
         url += "__service_type=getFullTxt&__response_type=image-large";
@@ -236,7 +272,7 @@ var ALEPH = {
     }
   },
   ui : {
-    addWidget : function( widget ) {
+    addWidget : function ( widget ) {
       // widget ... HTML element obsahující celý widget
       // Dodělat!
       var url = window.location.href;
@@ -257,7 +293,7 @@ var ALEPH = {
       }
     },
     // Vytvoří odkaz na mapu fondu.
-    lccMapLink : function() {
+    lccMapLink : function () {
       var lccPart = ALEPH.dom.getRowValue( "LCC" );
       if ( lccPart ) {
         // vybere vše až po nezlomitelnou mezeru (&nbsp;)
@@ -291,7 +327,7 @@ var ALEPH = {
       //
       // Zaprvé: je třeba získat přístup k odkazu
       // získání všech elementů <a>
-      getHrefs : function() {
+      getHrefs : function () {
         var links = document.getElementsByTagName( "a" );
         var hrefs = [];
         var linksLen = links.length;
@@ -308,7 +344,7 @@ var ALEPH = {
       },
       // Zadruhé: je třeba získat přístup k textu názvu
       // získání všech elementů <td>
-      getParents : function() {
+      getParents : function () {
         var titles = document.getElementsByTagName( "td" );
         var parents = [];
         var titlesLen = titles.length;
@@ -323,7 +359,7 @@ var ALEPH = {
         return parents;
       },
       // Zatřetí: je třeba vytvořit element <a> s odkazem a textem názvu
-      display : function() {
+      display : function () {
         var hrefs = ALEPH.ui.linkTitle.getHrefs();
         var parents = ALEPH.ui.linkTitle.getParents();
         if ( hrefs.length === parents.length ) {
@@ -350,7 +386,7 @@ var ALEPH = {
       }
     },
     RSS : {
-      getISSN : function() {
+      getISSN : function () {
         var issn = ALEPH.dom.getRowValue( "ISSN" );
         if ( issn ) {
           issn = issn.match(/\d{4}-[\dX]{4}/)[0];
@@ -360,12 +396,12 @@ var ALEPH = {
           return false;
         }
       },
-      createScript : function( issn ) {
+      createScript : function ( issn ) {
         var scriptUrl = "http://tictoclookup.appspot.com/" +
           issn + "?jsoncallback=ALEPH.ui.RSS.getLink";
         ALEPH.dom.createScript( scriptUrl, true );
       },
-      getLink : function( json ) {
+      getLink : function ( json ) {
         if ( json.records.length > 0 ) {
           var rssLink = json.records[0].rssfeed;
           
@@ -380,7 +416,7 @@ var ALEPH = {
           ALEPH.ui.addWidget( link );
         }
       },
-      display : function() {
+      display : function () {
         var issn = ALEPH.ui.RSS.getISSN();
         if ( issn ) {
           ALEPH.ui.RSS.createScript( issn );
@@ -395,7 +431,7 @@ var ALEPH = {
       shortUrl : false,
       longUrl : false,
       image : false,
-      init : function() {
+      init : function () {
         ALEPH.ui.shortenUrl.image = document.createElement( "img" );
         ALEPH.ui.shortenUrl.image.src = "http://aleph.ntkcz.cz/ikony/shortenurl_icon.png";
         ALEPH.ui.shortenUrl.image.title = "Zobrazit krátké URL";
@@ -408,12 +444,12 @@ var ALEPH = {
         
         ALEPH.util.addEvent( ALEPH.ui.shortenUrl.image, "click", ALEPH.ui.shortenUrl.getShortUrl );
       },
-      getLongUrl : function() {
+      getLongUrl : function () {
         var sysNo = ALEPH.util.trim( ALEPH.dom.getRowValue( "Sysno" ) );
         ALEPH.ui.shortenUrl.longUrl = "http://aleph.techlib.cz/F/?func=direct&doc_number=" + 
           sysNo;
       },
-      getShortUrl : function() {
+      getShortUrl : function () {
         if ( !ALEPH.ui.shortenUrl.clicked ) {
           ALEPH.ui.shortenUrl.clicked = true;
           if ( !ALEPH.ui.shortenUrl.loaded ) {
@@ -432,7 +468,7 @@ var ALEPH = {
         }
         return false;
       },
-      load : function() {
+      load : function () {
         var login = "techlib";
         var apiKey = "R_3ecf3c8f0ca8614028a56c7368be0947";
         ALEPH.ui.shortenUrl.getLongUrl();
@@ -443,7 +479,7 @@ var ALEPH = {
         
         ALEPH.dom.createScript( url );
       },
-      callback : function( json ) {
+      callback : function ( json ) {
         ALEPH.ui.shortenUrl.loaded = true;
         if ( json.statusCode === "OK" ) {
           var shortLink = document.createElement( "input" );
@@ -481,10 +517,10 @@ var ALEPH = {
   util : {
     // John Resig's addEvent function
     // URL: http://ejohn.org/blog/flexible-javascript-events/
-    addEvent : function( obj, type, fn ) {
+    addEvent : function ( obj, type, fn ) {
       if ( obj.attachEvent ) {
         obj['e' + type + fn] = fn;
-        obj[type + fn] = function() {
+        obj[type + fn] = function () {
           obj['e' + type + fn]( window.event );
         };
         obj.attachEvent( 'on' + type, obj[type + fn] );
@@ -495,8 +531,9 @@ var ALEPH = {
     },
     // Aplikuje na element více CSS pravidel ve tvaru 
     // styles = { color : "red", border : "solid 2px blue" }
-    applyCSS : function( element, styles ) {
-      for ( var property in styles ) {
+    applyCSS : function ( element, styles ) {
+      var property;
+      for (property in styles) {
         if ( !styles.hasOwnProperty || styles.hasOwnProperty( property ) ) {
           element.style[property] = styles[property];
         }
@@ -505,7 +542,7 @@ var ALEPH = {
     },
     // Peter-Paul Koch findPos function, s drobnými úpravami
     // http://www.quirksmode.org/js/findpos.html
-    findPosition : function( element ) {
+    findPosition : function ( element ) {
       var curleft = 0,
         curtop = 0;
       if ( element.offsetParent ) {
@@ -517,8 +554,22 @@ var ALEPH = {
       }
       return { left : curleft, top : curtop };
     },
+    // http://jsfiddle.net/4ZwNs/
+    getAttribute : function (element, attribute) {
+      var result = (element.getAttribute && element.getAttribute(attribute)) || null;
+      if( !result ) {
+        var attributes = element.attributes,
+          attributesLen = attributes.length;
+        while (attributesLen--) {
+          if (attribute[attributesLen].nodeName === attribute) {
+            result = attribute[attributesLen].nodeValue;
+          }
+        }
+      }
+      return result;
+    }
     // Odstraní whitespace na koncích řetězce.
-    trim : function( text ) {
+    trim : function ( text ) {
       return text.replace(/^\s+|\s+$/g,"");
     }
   }
