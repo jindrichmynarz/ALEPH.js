@@ -296,6 +296,20 @@ var ALEPH = {
         toolsLocation.appendChild( widget );
       }
     },
+    fulltext : function () {
+      var fulltextRow = ALEPH.dom.getRowValue("El.umístění", 1);
+      if (fulltextRow) {
+        var fulltextLink = fulltextRow.getElementsByTagName("a")[0].firstChild.nextSibling.nodeValue,
+          fulltextWidget = document.createElement("a");
+        fulltextWidget.href = fulltextLink;
+        fulltextWidget.title = "Přejít k plnému textu dokumentu";
+        var fulltextImg = document.createElement( "img" );
+          fulltextImg.src = "http://aleph.ntkcz.cz/ikony/fulltext.png";
+          fulltextImg.border = 0;
+          fulltextWidget.appendChild(fulltextImg);
+        ALEPH.ui.addWidget(fulltextWidget);
+      }
+    },
     // Vytvoří odkaz na mapu fondu.
     lccMapLink : function () {
       var lccPart = ALEPH.dom.getRowValue( "LCC" );
