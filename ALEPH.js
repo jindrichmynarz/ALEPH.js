@@ -174,7 +174,7 @@ var ALEPH = {
           }
         }
       }
-      if (displayFlag) {
+      if (ALEPH.eod.displayFlag) {
         ALEPH.eod.display();
       }
     },
@@ -188,15 +188,15 @@ var ALEPH = {
       ALEPH.ui.addWidget( eodLink );
     },
     init : function () {
-      var eod = ALEPH.dom.getRowValue( "EOD", 1 ),
+      var eod = ALEPH.dom.getRowValue("EOD", 1),
         // do tohoto roku lze v rámci EOD digitalizovat
         limit = (new Date()).getFullYear() - 100;
-      if ( eod ) {
-        ALEPH.eod.sysno = ALEPH.dom.getRowValue( "Sysno" );
-        year = ALEPH.dom.getRowValue( "Naklad", 1 ).innerHTML.match( /\d{4}/ );
-        if ( year ) {
+      if (eod) {
+        ALEPH.eod.sysno = ALEPH.dom.getRowValue("Sysno");
+        year = ALEPH.dom.getRowValue("Naklad", 1).innerHTML.match(/\d{4}/);
+        if (year) {
           year = year[0];
-          if ( year <= limit ) {
+          if (year <= limit) {
             var url = "http://aleph.techlib.cz/X?op=find_doc&base=STK01&doc_num="
               + ALEPH.eod.sysno;
             ALEPH.ajax.getResponse(url, ALEPH.eod.callback);
@@ -304,9 +304,9 @@ var ALEPH = {
         fulltextWidget.href = fulltextLink;
         fulltextWidget.title = "Přejít k plnému textu dokumentu";
         var fulltextImg = document.createElement( "img" );
-          fulltextImg.src = "http://aleph.ntkcz.cz/ikony/fulltext.png";
-          fulltextImg.border = 0;
-          fulltextWidget.appendChild(fulltextImg);
+        fulltextImg.src = "http://aleph.ntkcz.cz/ikony/fulltext.png";
+        fulltextImg.border = 0;
+        fulltextWidget.appendChild(fulltextImg);
         ALEPH.ui.addWidget(fulltextWidget);
       }
     },
@@ -423,9 +423,9 @@ var ALEPH = {
         if ( json.records.length > 0 ) {
           var rssLink = json.records[0].rssfeed;
           
-          var link = document.createElement( "a" );
+          var link = document.createElement( "a" ),
+            linkImage = document.createElement( "img" );
           link.href = rssLink;
-          var linkImage = document.createElement( "img" );
           linkImage.src = "http://aleph.ntkcz.cz/ikony/rss_icon.png";
           linkImage.alt = "RSS časopisu";
           linkImage.title = "Zobrazit RSS tohoto časopisu";
@@ -585,7 +585,7 @@ var ALEPH = {
         }
       }
       return result;
-    }
+    },
     // Odstraní whitespace na koncích řetězce.
     trim : function ( text ) {
       return text.replace(/^\s+|\s+$/g,"");
